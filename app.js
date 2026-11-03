@@ -9,10 +9,27 @@ const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
 const TABS = [core.LETTERS, ...core.KINDS.flatMap(k => [k.catalogTab, k.formsTab])];
 const RANGES = { [core.LETTERS]: 'A:AV', People: 'A:B', Places: 'A:B', 'Political entities': 'A:B' };
 
-// source: {kind:'google', id} | {kind:'file', sheets, formulaAt(col,row)}
+// source: {kind:'google', id, url} | {kind:'script', url, key, who} | {kind:'file', sheets, formulaAt(col,row)}
 let source = null, result = null, master = null, review = null;
 
-try { $('master-url').value = localStorage.getItem('opus.masterUrl') || cfg.masterUrl; } catch { $('master-url').value = cfg.masterUrl; }
+const store = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch { return null; } };
+const isScript = u => /script\.google(usercontent)?\.com\/macros\//.test(u);
+$('master-url').value = store('opus.masterUrl') || cfg.masterUrl;
+$('script-key').value = store('opus.key') || '';
+$('who').value = store('opus.who') || '';
+const syncFields = () => { $('script-fields').hidden = !isScript($('master-url').value); };
+$('master-url').addEventListener('input', syncFields);
+syncFields();
+
+/* ---------- Apps Script bridge (tools/apps_script.gs) ---------- */
+async function script(action, body = {}) {
+  // text/plain keeps this a "simple" request: Apps Script cannot answer CORS preflights.
+  const r = await fetch(source.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, key: source.key, ...body }) });
+  const data = await r.json().catch(() => { throw new Error('The Apps Script URL did not answer with data. Check that it is deployed as a web app with access "Anyone".'); });
+  if (data.error) throw new Error(data.error);
+  return data;
+}
 
 /* ---------- Google ---------- */
 let token = null, tokenExpiry = 0;
@@ -50,6 +67,7 @@ const rangeOf = t => `'${t}'!${RANGES[t] || 'A:D'}`;
 /* ---------- loading MASTER ---------- */
 async function readMaster() {
   if (source.kind === 'file') return source.sheets;
+  if (source.kind === 'script') return (await script('read', { tabs: TABS })).sheets;
   const r = await api(`/values:batchGet?${TABS.map(t => `ranges=${q(rangeOf(t))}`).join('&')}`);
   return Object.fromEntries(TABS.map((t, i) => [t, r.valueRanges[i].values || []]));
 }
@@ -61,8 +79,10 @@ async function formulaCols(sheets, letterId) {
   if (source.kind === 'file') {
     return new Set(Array.from({ length: 48 }, (_, c) => core.colLetter(c)).filter(c => source.formulaAt(c, row)));
   }
-  const r = await api(`/values/${q(`'${core.LETTERS}'!A${row}:AV${row}`)}?valueRenderOption=FORMULA`);
-  return new Set((r.values?.[0] || []).map((v, c) => String(v).startsWith('=') ? core.colLetter(c) : null).filter(Boolean));
+  const vals = source.kind === 'script'
+    ? (await script('formulas', { tab: core.LETTERS, row })).formulas
+    : (await api(`/values/${q(`'${core.LETTERS}'!A${row}:AV${row}`)}?valueRenderOption=FORMULA`)).values?.[0];
+  return new Set((vals || []).map((v, c) => String(v).startsWith('=') ? core.colLetter(c) : null).filter(Boolean));
 }
 
 async function loadMasterFor(letterId) {
@@ -90,9 +110,15 @@ async function connect(newSource, label) {
 
 $('btn-google').onclick = () => {
   const url = $('master-url').value.trim();
+  store('opus.masterUrl', url);
+  if (isScript(url)) {
+    const key = $('script-key').value.trim(), who = $('who').value.trim();
+    if (!key) return status('master-status', 'Enter the access key.', 'err');
+    store('opus.key', key); store('opus.who', who);
+    return connect({ kind: 'script', url, key, who }, 'Connected through Apps Script');
+  }
   const id = url.match(/\/spreadsheets\/d\/([\w-]+)/)?.[1];
   if (!id) return status('master-status', 'Paste a Google Sheets link (…/spreadsheets/d/…).', 'err');
-  try { localStorage.setItem('opus.masterUrl', url); } catch {}
   connect({ kind: 'google', id, url }, 'Connected to Google Sheet');
 };
 
@@ -198,8 +224,8 @@ function renderPlan() {
   $('plan').innerHTML = plan.summary.length
     ? `<ol>${plan.summary.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`
     : '<p class="muted">No changes selected.</p>';
-  $('btn-write').disabled = !plan.summary.length || source.kind !== 'google';
-  $('btn-write').title = source.kind === 'google' ? '' : 'Test mode: load MASTER from Google to write';
+  $('btn-write').disabled = !plan.summary.length || source.kind === 'file';
+  $('btn-write').title = source.kind === 'file' ? 'Test mode: connect to MASTER to write' : '';
 }
 
 $('review').addEventListener('change', e => {
@@ -239,9 +265,13 @@ $('btn-write').onclick = async () => {
     }
     const plan = core.buildPlan(master, review);
     status('write-status', 'Writing…');
-    if (plan.raw.length) await api('/values:batchUpdate', { method: 'POST', body: JSON.stringify({ valueInputOption: 'RAW', data: plan.raw }) });
-    if (plan.formulas.length) await api('/values:batchUpdate', { method: 'POST', body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data: plan.formulas }) });
-    status('write-status', `Done: ${plan.summary.length} changes written. <a href="${esc(source.url)}" target="_blank" rel="noopener">Open MASTER</a>`, 'ok');
+    if (source.kind === 'script') {
+      await script('write', { raw: plan.raw, formulas: plan.formulas, summary: plan.summary, letter: review.letterId, who: source.who });
+    } else {
+      if (plan.raw.length) await api('/values:batchUpdate', { method: 'POST', body: JSON.stringify({ valueInputOption: 'RAW', data: plan.raw }) });
+      if (plan.formulas.length) await api('/values:batchUpdate', { method: 'POST', body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data: plan.formulas }) });
+    }
+    status('write-status', `Done: ${plan.summary.length} changes written.${source.kind === 'google' ? ` <a href="${esc(source.url)}" target="_blank" rel="noopener">Open MASTER</a>` : ''}`, 'ok');
     await startReview(); // show the new state of MASTER
   } catch (e) {
     status('write-status', esc(e.message), 'err');

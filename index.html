@@ -41,8 +41,12 @@
   <section id="s-master">
     <h2><span>1</span> MASTER sheet</h2>
     <div class="row">
-      <input id="master-url" type="url" placeholder="Google Sheets link to MASTER" aria-label="MASTER link">
-      <button id="btn-google">Sign in with Google and load</button>
+      <input id="master-url" type="url" placeholder="Apps Script web-app URL, or Google Sheets link to MASTER" aria-label="MASTER connection">
+      <button id="btn-google">Load</button>
+    </div>
+    <div class="row" id="script-fields" hidden>
+      <input id="script-key" type="password" placeholder="Access key" aria-label="Access key" autocomplete="off">
+      <input id="who" type="text" placeholder="Your name (for the upload log)" aria-label="Your name">
     </div>
     <div class="row muted">
       <label class="file">Or test without Google: load a local copy of MASTER (.xlsx, read-only)
