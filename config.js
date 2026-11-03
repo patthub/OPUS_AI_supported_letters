@@ -1,4 +1,4 @@
-// The only file to edit when setting up. Both values are public by design.
+// The only file to edit when setting up. This file is public (GitHub Pages).
 window.OPUS_CONFIG = {
   // OAuth 2.0 Client ID (type "Web application") from Google Cloud Console; see README.
   clientId: '',
