@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OPUS letter upload</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+<header>
+  <h1>OPUS letter upload</h1>
+  <p>Check an AI annotation result against the MASTER sheet, correct it, and add it to MASTER.
+     Nothing is written until you confirm the plan in step 4.</p>
+</header>
+
+<main>
+  <section id="s-master">
+    <h2><span>1</span> MASTER sheet</h2>
+    <div class="row">
+      <input id="master-url" type="url" placeholder="Google Sheets link to MASTER" aria-label="MASTER link">
+      <button id="btn-google">Sign in with Google and load</button>
+    </div>
+    <div class="row muted">
+      <label class="file">Or test without Google: load a local copy of MASTER (.xlsx, read-only)
+        <input id="master-file" type="file" accept=".xlsx"></label>
+    </div>
+    <p id="master-status" class="status"></p>
+  </section>
+
+  <section id="s-result">
+    <h2><span>2</span> Result file from the prompt</h2>
+    <label class="file">Choose <code>&lt;letter ID&gt;_result.xlsx</code>
+      <input id="result-file" type="file" accept=".xlsx" disabled></label>
+    <p id="result-status" class="status"></p>
+  </section>
+
+  <section id="s-review" hidden>
+    <h2><span>3</span> Review</h2>
+    <div id="review"></div>
+  </section>
+
+  <section id="s-plan" hidden>
+    <h2><span>4</span> Changes to MASTER</h2>
+    <div id="plan"></div>
+    <div class="row">
+      <button id="btn-write" class="primary">Write these changes to MASTER</button>
+      <button id="btn-export">Download reviewed result (.xlsx)</button>
+    </div>
+    <p id="write-status" class="status"></p>
+  </section>
+</main>
+</body>
+</html>

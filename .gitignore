@@ -1,0 +1,4 @@
+*.xlsx
+!prompt/result_template.xlsx
+*.docx
+.DS_Store
