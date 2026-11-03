@@ -45,3 +45,11 @@ tr.diff { background: var(--diff); } tr.dim { opacity: .6; }
 details { margin: 8px 0; } summary { cursor: pointer; color: var(--muted); }
 label.opt { display: block; margin-top: 20px; }
 ol { padding-left: 22px; font-size: 14px; } li { margin: 2px 0; }
+nav { display: flex; gap: 4px; margin: 4px 0 16px; border-bottom: 1px solid var(--line); }
+nav a { padding: 8px 14px; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+nav a.on { color: var(--ink); border-color: var(--accent); font-weight: 600; }
+main > p.muted { margin-top: 0; }
+a { color: var(--accent); }
+.doc article { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 28px 20px; margin-bottom: 24px; max-width: 860px; line-height: 1.6; }
+.doc article h1 { font-size: 22px; } .doc article h2 { font-size: 18px; margin-top: 28px; display: block; } .doc article h3 { font-size: 16px; }
+.doc .row { max-width: 860px; }

@@ -256,3 +256,32 @@ $('btn-export').onclick = () => {
   }
   XLSX.writeFile(wb, `${review.letterId}_result_reviewed.xlsx`);
 };
+
+/* ---------- tabs: upload / prompt / how to ---------- */
+const views = ['upload', 'prompt', 'howto'];
+const loaded = {};
+const fetchText = async src => (loaded[src] ??= fetch(src).then(r => r.ok ? r.text() : Promise.reject(new Error(r.statusText))));
+
+async function showView() {
+  const v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'upload';
+  views.forEach(x => { $(`v-${x}`).hidden = x !== v; });
+  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.hash === `#${v}`));
+  const art = $(`v-${v}`).querySelector('article[data-src]');
+  if (art && !art.dataset.done) {
+    try {
+      // "<letter ID>" in the text is prose, not HTML
+      art.innerHTML = marked.parse((await fetchText(art.dataset.src)).replace(/</g, '&lt;'));
+      art.dataset.done = '1';
+    } catch (e) { art.innerHTML = `<p class="status err">Could not load ${esc(art.dataset.src)}: ${esc(e.message)}</p>`; }
+  }
+}
+window.addEventListener('hashchange', showView);
+showView();
+
+document.addEventListener('click', async e => {
+  const src = e.target.dataset?.copy;
+  if (!src) return;
+  const out = e.target.parentElement.querySelector('.status');
+  try { await navigator.clipboard.writeText(await fetchText(src)); out.className = 'status ok'; out.textContent = 'Copied. Fill in the three inputs in braces.'; }
+  catch (err) { out.className = 'status err'; out.textContent = `Copy failed: ${err.message}`; }
+});

@@ -3,21 +3,41 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OPUS letter upload</title>
+  <title>OPUS AI-supported letters</title>
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async></script>
   <script type="module" src="app.js"></script>
 </head>
 <body>
 <header>
-  <h1>OPUS letter upload</h1>
-  <p>Check an AI annotation result against the MASTER sheet, correct it, and add it to MASTER.
-     Nothing is written until you confirm the plan in step 4.</p>
+  <h1>OPUS AI-supported letters</h1>
+  <nav>
+    <a href="#upload">Upload</a>
+    <a href="#prompt">Prompt</a>
+    <a href="#howto">How to use</a>
+  </nav>
 </header>
 
-<main>
+<main id="v-prompt" class="doc" hidden>
+  <div class="row">
+    <button class="primary" data-copy="prompt/OPUS_prompt_v3.md">Copy prompt</button>
+    <a href="prompt/OPUS_prompt_v3.md" download>Download .md</a>
+    <a href="prompt/result_template.xlsx" download>Result template (.xlsx)</a>
+    <span class="status"></span>
+  </div>
+  <article data-src="prompt/OPUS_prompt_v3.md"></article>
+</main>
+
+<main id="v-howto" class="doc" hidden>
+  <article data-src="prompt/How_to_use_the_OPUS_prompt_v3.md"></article>
+</main>
+
+<main id="v-upload">
+  <p class="muted">Check an AI annotation result against the MASTER sheet, correct it, and add it to MASTER.
+     Nothing is written until you confirm the plan in step 4.</p>
   <section id="s-master">
     <h2><span>1</span> MASTER sheet</h2>
     <div class="row">
